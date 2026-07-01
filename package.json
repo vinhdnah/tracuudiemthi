@@ -1,0 +1,24 @@
+{
+  "name": "tracuu-diem-thpt",
+  "version": "1.0.0",
+  "description": "Tool tra cuu diem thi tot nghiep THPT va xuat Excel",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "axios-cookiejar-support": "^5.0.3",
+    "cheerio": "^1.0.0-rc.12",
+    "exceljs": "^4.4.0",
+    "express": "^4.19.2",
+    "multer": "^2.2.0",
+    "pdf-parse": "^2.4.5",
+    "tough-cookie": "^4.1.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "private": true
+}

@@ -1,0 +1,9 @@
+node_modules/
+captcha_*.png
+captcha_test.png
+test.js
+test_cookie.js
+test_captcha_save.js
+test_captcha_multi.js
+.DS_Store
+.env

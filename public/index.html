@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hệ thống Tra cứu điểm thi THPT - Lạng Sơn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Background Elements -->
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <!-- Header -->
+    <header class="main-header">
+      <div class="logo-area">
+        <span class="material-icons-round icon-logo">school</span>
+        <div>
+          <h1>Tra Cứu Điểm Thi Tốt Nghiệp THPT</h1>
+          <p class="subtitle">Hội đồng thi Sở GD&ĐT Tỉnh Lạng Sơn</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-show-config" class="btn btn-secondary">
+          <span class="material-icons-round">settings</span>
+          Cấu hình API
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid Layout -->
+    <main class="main-content">
+      
+      <!-- Left side: Controls, Stats & Single Check -->
+      <section class="control-panel">
+        
+        <!-- API Config Modal/Card -->
+        <div id="config-card" class="glass-card">
+          <div class="card-header">
+            <span class="material-icons-round text-accent">vpn_key</span>
+            <h3>Cấu hình AutoCaptcha</h3>
+          </div>
+          <div class="card-body">
+            <p class="card-desc">Nhập API key từ <strong>autocaptcha.pro</strong> để hệ thống tự động giải captcha hình ảnh.</p>
+            <div class="form-group">
+              <label for="captcha-key">AutoCaptcha API Key:</label>
+              <div class="input-with-icon">
+                <span class="material-icons-round input-icon">key</span>
+                <input type="password" id="captcha-key" placeholder="Nhập API key tại đây..." />
+                <button type="button" id="btn-toggle-key" class="btn-icon">
+                  <span class="material-icons-round">visibility</span>
+                </button>
+              </div>
+            </div>
+            <button id="btn-save-config" class="btn btn-primary btn-full">Lưu Cấu Hình</button>
+          </div>
+        </div>
+
+        <!-- Nạp Danh Sách Học Sinh -->
+        <div class="glass-card mt-20">
+          <div class="card-header">
+            <span class="material-icons-round text-accent">upload_file</span>
+            <h3>Nạp Danh Sách Học Sinh</h3>
+          </div>
+          <div class="card-body">
+            <p class="card-desc">Tải lên file Excel (.xlsx, .xls) hoặc file PDF chứa danh sách Số báo danh để nạp vào hệ thống.</p>
+            <div id="drop-zone" class="drop-zone">
+              <span class="material-icons-round drop-icon">cloud_upload</span>
+              <span class="drop-text">Kéo thả file vào đây hoặc click để chọn</span>
+              <input type="file" id="file-input" accept=".xlsx,.xls,.pdf" style="display: none;" />
+            </div>
+            <div id="upload-status" class="upload-status mt-10" style="display: none;"></div>
+          </div>
+        </div>
+
+        <!-- System Actions & Stats -->
+        <div class="glass-card mt-20">
+          <div class="card-header">
+            <span class="material-icons-round text-accent">analytics</span>
+            <h3>Tiến trình check hàng loạt</h3>
+          </div>
+          <div class="card-body">
+            
+            <div class="progress-container">
+              <div class="progress-bar-wrapper">
+                <div id="progress-fill" class="progress-bar-fill" style="width: 0%"></div>
+              </div>
+              <div class="progress-labels">
+                <span id="progress-percent">0%</span>
+                <span id="progress-count">0 / 0 học sinh</span>
+              </div>
+            </div>
+
+            <div class="stats-grid">
+              <div class="stat-box success">
+                <span class="material-icons-round stat-icon">check_circle</span>
+                <div class="stat-info">
+                  <span class="stat-value" id="stat-success">0</span>
+                  <span class="stat-label">Thành công</span>
+                </div>
+              </div>
+              <div class="stat-box error">
+                <span class="material-icons-round stat-icon">error</span>
+                <div class="stat-info">
+                  <span class="stat-value" id="stat-failed">0</span>
+                  <span class="stat-label">Thất bại / Lỗi</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="action-buttons">
+              <button id="btn-start" class="btn btn-gradient btn-full">
+                <span class="material-icons-round">play_arrow</span>
+                Bắt đầu check hàng loạt
+              </button>
+              <button id="btn-stop" class="btn btn-danger btn-full" disabled style="display: none;">
+                <span class="material-icons-round">stop</span>
+                Dừng check
+              </button>
+              <button id="btn-reset" class="btn btn-secondary btn-full">
+                <span class="material-icons-round">restart_alt</span>
+                Reset tiến trình
+              </button>
+              <a id="btn-download" href="/api/export" class="btn btn-success btn-full disabled" target="_blank">
+                <span class="material-icons-round">download</span>
+                Tải File Excel kết quả
+              </a>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Single Check -->
+        <div class="glass-card mt-20">
+          <div class="card-header">
+            <span class="material-icons-round text-accent">search</span>
+            <h3>Tra cứu đơn lẻ nhanh</h3>
+          </div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="single-sbd">Số báo danh (SBD):</label>
+              <div class="input-with-icon">
+                <span class="material-icons-round input-icon">badge</span>
+                <input type="text" id="single-sbd" placeholder="Ví dụ: 20006864" />
+              </div>
+            </div>
+            <button id="btn-check-single" class="btn btn-secondary btn-full">Tra cứu nhanh</button>
+            
+            <div id="single-result-box" class="single-result-box mt-15" style="display: none;">
+              <!-- Nội dung kết quả check đơn lẻ sẽ được chèn ở đây -->
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right side: Student List & Table -->
+      <section class="results-panel">
+        <div class="glass-card h-full">
+          <div class="card-header justify-between">
+            <div class="flex-align">
+              <span class="material-icons-round text-accent">list_alt</span>
+              <h3>Danh sách học sinh & Kết quả</h3>
+            </div>
+            <div class="search-student">
+              <span class="material-icons-round search-icon">search</span>
+              <input type="text" id="search-student-input" placeholder="Tìm tên hoặc SBD..." />
+            </div>
+          </div>
+          <div class="table-container">
+            <table class="students-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px">STT</th>
+                  <th style="width: 110px">SBD</th>
+                  <th>Họ và Tên</th>
+                  <th style="width: 110px">Trạng thái</th>
+                  <th>Toán</th>
+                  <th>Văn</th>
+                  <th>N.Ngữ</th>
+                  <th>Lý</th>
+                  <th>Hóa</th>
+                  <th>Sinh</th>
+                  <th>Sử</th>
+                  <th>Địa</th>
+                  <th>GDCD</th>
+                </tr>
+              </thead>
+              <tbody id="students-tbody">
+                <!-- Data rows will render here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <p>&copy; 2026 THPT Score Checker. Built with Advanced Design System.</p>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

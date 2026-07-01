@@ -9,9 +9,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-  <!-- Thư viện Client-side parsing & Excel export -->
+  <!-- Thư viện Client-side Excel export -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -45,45 +44,21 @@
         <!-- Nạp Danh Sách Học Sinh -->
         <div class="glass-card mt-20">
           <div class="card-header">
-            <span class="material-icons-round text-accent">school</span>
-            <h3>Nạp Danh Sách Học Sinh</h3>
+            <span class="material-icons-round text-accent">edit_note</span>
+            <h3>Nhập Danh Sách Học Sinh</h3>
           </div>
-          <div class="card-body" style="padding-top: 10px;">
-            <!-- Tabs Headers -->
-            <div class="tabs-header">
-              <button id="tab-btn-file" class="tab-btn active">
-                <span class="material-icons-round">upload_file</span> Tải File
-              </button>
-              <button id="tab-btn-text" class="tab-btn">
-                <span class="material-icons-round">edit_note</span> Nhập thủ công
-              </button>
-            </div>
-
-            <!-- Tab Content: File Upload -->
-            <div id="tab-content-file" class="tab-content active">
-              <p class="card-desc mt-10">Tải lên file Excel hoặc PDF chứa Số báo danh để nạp danh sách.</p>
-              <div id="drop-zone" class="drop-zone">
-                <span class="material-icons-round drop-icon">cloud_upload</span>
-                <span class="drop-text">Kéo thả file vào đây hoặc click để chọn</span>
-                <input type="file" id="file-input" accept=".xlsx,.xls,.pdf" style="display: none;" />
-              </div>
-            </div>
-
-            <!-- Tab Content: Manual Input -->
-            <div id="tab-content-text" class="tab-content">
-              <p class="card-desc mt-10">Nhập danh sách học sinh (mỗi dòng một người). Hỗ trợ: "SBD Họ tên" hoặc chỉ "SBD".</p>
-              <div class="form-group mt-10">
-                <textarea id="manual-list-textarea" class="glass-input textarea-list" rows="6" placeholder="Ví dụ:
+          <div class="card-body">
+            <p class="card-desc">Nhập danh sách học sinh (mỗi dòng một người). Định dạng: "SBD Họ tên" hoặc chỉ "SBD".</p>
+            <div class="form-group mt-15">
+              <textarea id="manual-list-textarea" class="glass-input textarea-list" rows="8" placeholder="Ví dụ:
 20006864 HOÀNG NGỌC DUYÊN
 20006865 HOÀNG THỊ KIM DUYÊN
-20006873
+20006873 LƯƠNG MẠNH HẢI
 ..."></textarea>
-              </div>
-              <button id="btn-apply-manual-list" class="btn btn-secondary btn-full mt-10">
-                <span class="material-icons-round">check</span> Áp dụng danh sách
-              </button>
             </div>
-
+            <button id="btn-apply-manual-list" class="btn btn-secondary btn-full mt-15">
+              <span class="material-icons-round">check</span> Áp dụng danh sách
+            </button>
             <div id="upload-status" class="upload-status mt-10" style="display: none;"></div>
           </div>
         </div>

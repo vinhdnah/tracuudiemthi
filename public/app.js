@@ -30,9 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const studentsTbody = document.getElementById('students-tbody');
   const studentsCards = document.getElementById('students-cards');
 
-  // Drag & drop file elements
-  const dropZone = document.getElementById('drop-zone');
-  const fileInput = document.getElementById('file-input');
   const uploadStatus = document.getElementById('upload-status');
 
   // 1. Đọc danh sách học sinh từ LocalStorage
@@ -646,221 +643,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 11. Phân tích file Excel bằng SheetJS ở Client-side
-  async function parseExcelFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-          const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          
-          let sbdColIndex = -1;
-          let nameColIndex = -1;
-          
-          // Dò tìm vị trí các cột SBD và Tên
-          const maxRowsToScan = Math.min(rows.length, 15);
-          for (let i = 0; i < maxRowsToScan; i++) {
-            const row = rows[i];
-            if (!row) continue;
-            for (let j = 0; j < row.length; j++) {
-              const val = row[j] ? String(row[j]).trim() : '';
-              if (!val) continue;
-              if (/^[0-9]{8}$/.test(val) && sbdColIndex === -1) {
-                sbdColIndex = j;
-              }
-              if (/^[a-zA-ZÀ-ỹ\s]{5,40}$/.test(val) && !/[0-9]/.test(val) && nameColIndex === -1 && j !== sbdColIndex) {
-                nameColIndex = j;
-              }
-            }
-          }
-          
-          if (sbdColIndex === -1) sbdColIndex = 0;
-          if (nameColIndex === -1) nameColIndex = 1;
-          
-          const students = [];
-          rows.forEach((row) => {
-            const sbdVal = row[sbdColIndex] ? String(row[sbdColIndex]).trim() : '';
-            const nameVal = row[nameColIndex] ? String(row[nameColIndex]).trim() : '';
-            
-            if (/^[0-9]{8}$/.test(sbdVal)) {
-              const cleanName = nameVal.replace(/\s+/g, ' ').trim().toUpperCase();
-              students.push({
-                sbd: sbdVal,
-                name: cleanName || `Học sinh ${sbdVal}`
-              });
-            }
-          });
-          
-          resolve(students);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.onerror = () => reject(new Error('Lỗi đọc file Excel'));
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  // 12. Phân tích file PDF bằng PDF.js ở Client-side
-  async function parsePdfFile(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        try {
-          const typedarray = new Uint8Array(e.target.result);
-          
-          // Cấu hình PDFJS worker CDN
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-          
-          const pdfDoc = await pdfjsLib.getDocument({ data: typedarray }).promise;
-          let fullText = '';
-          
-          for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
-            const page = await pdfDoc.getPage(pageNum);
-            const textContent = await page.getTextContent();
-            // Nối các khối text của trang, chuẩn hóa khoảng trắng thừa
-            const pageText = textContent.items.map(item => item.str).join(' ').replace(/\s+/g, ' ');
-            fullText += pageText + '\n';
-          }
-          
-          console.log('=== PDF TEXT EXTRACTED (Length: ' + fullText.length + ') ===');
-          console.log(fullText);
-
-          const students = [];
-          
-          // 1. Sử dụng matchAll quét toàn bộ văn bản tìm dạng "Họ tên thí sinh: ... Số báo danh: ..."
-          const matches = [...fullText.matchAll(/Họ\s+tên\s+thí\s+sinh:\s*(.+?)\s*Số\s+báo\s+danh:\s*([0-9]{8})/gi)];
-          
-          matches.forEach(match => {
-            const name = match[1].replace(/\s+/g, ' ').trim().toUpperCase();
-            const sbd = match[2].trim();
-            if (name.length >= 3 && !students.some(s => s.sbd === sbd)) {
-              students.push({ sbd, name });
-            }
-          });
-
-          // 2. Dự phòng nếu regex chính không khớp (ví dụ: bị đổi nhãn)
-          if (students.length === 0) {
-            const lines = fullText.split(/\n/);
-            lines.forEach(line => {
-              const sbdMatch = line.match(/\b([0-9]{8})\b/);
-              if (sbdMatch) {
-                const sbd = sbdMatch[1];
-                let remainingText = line.replace(sbd, '');
-                remainingText = remainingText.replace(/^\s*\d+\s+/, '');
-                remainingText = remainingText.replace(/\d{2}[/\-]\d{2}[/\-]\d{4}/g, '');
-                
-                // Giữ lại chữ cái và khoảng trắng tiếng Việt
-                const cleanName = remainingText.replace(/[^a-zA-ZÀ-ỹ\s]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
-                if (cleanName.length >= 3 && !students.some(s => s.sbd === sbd)) {
-                  students.push({ sbd, name: cleanName });
-                }
-              }
-            });
-          }
-          
-          resolve(students);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      reader.onerror = () => reject(new Error('Lỗi đọc file PDF'));
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  // 13. Xử lý Upload file từ Drag & Drop
-  dropZone.addEventListener('click', () => {
-    fileInput.click();
-  });
-
-  fileInput.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-      handleFileUpload(e.target.files[0]);
-    }
-  });
-
-  ['dragenter', 'dragover'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropZone.classList.add('dragover');
-    }, false);
-  });
-
-  ['dragleave', 'drop'].forEach(eventName => {
-    dropZone.addEventListener(eventName, (e) => {
-      e.preventDefault();
-      dropZone.classList.remove('dragover');
-    }, false);
-  });
-
-  dropZone.addEventListener('drop', (e) => {
-    const dt = e.dataTransfer;
-    const files = dt.files;
-    if (files.length > 0) {
-      handleFileUpload(files[0]);
-    }
-  });
-
-  async function handleFileUpload(file) {
-    const validExtensions = ['.xlsx', '.xls', '.pdf'];
-    const fileExt = file.name.substring(file.name.lastIndexOf('.')).toLowerCase();
-    
-    if (!validExtensions.includes(fileExt)) {
-      showUploadStatus('Định dạng file không hỗ trợ. Vui lòng tải file Excel (.xlsx, .xls) hoặc PDF.', 'error');
-      return;
-    }
-
-    showUploadStatus('Đang phân tích dữ liệu trực tiếp trên trình duyệt...', 'loading');
-
-    try {
-      let parsedStudents = [];
-      if (fileExt === '.pdf') {
-        parsedStudents = await parsePdfFile(file);
-      } else {
-        parsedStudents = await parseExcelFile(file);
-      }
-
-      if (parsedStudents.length === 0) {
-        showUploadStatus('Không tìm thấy Số báo danh 8 chữ số nào trong file.', 'error');
-        return;
-      }
-
-      // Lưu danh sách vào LocalStorage
-      studentsData = parsedStudents;
-      localStorage.setItem('students_list', JSON.stringify(studentsData));
-      
-      // Reset trạng thái tiến trình cũ
-      localStorage.removeItem('check_results');
-      checkProgress = {
-        isChecking: false,
-        total: studentsData.length,
-        current: 0,
-        successCount: 0,
-        failCount: 0,
-        results: []
-      };
-
-      showUploadStatus(`Đã nạp thành công ${studentsData.length} học sinh từ file!`, 'success');
-      
-      progressFill.style.width = '0%';
-      progressPercent.textContent = '0%';
-      progressCount.textContent = `0 / ${studentsData.length} học sinh`;
-      statSuccess.textContent = '0';
-      statFailed.textContent = '0';
-      btnDownload.classList.add('disabled');
-
-      renderStudentsTable(studentsData);
-
-    } catch (error) {
-      showUploadStatus('Lỗi bóc tách file: ' + error.message, 'error');
-    }
-  }
-
   function showUploadStatus(message, type) {
     uploadStatus.style.display = 'block';
     uploadStatus.className = `upload-status mt-10 ${type}`;
@@ -891,30 +673,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderStudentsTable(filteredStudents, resultsMap);
   });
 
-  // Định nghĩa các DOM Elements của tab nhập tay
-  const tabBtnFile = document.getElementById('tab-btn-file');
-  const tabBtnText = document.getElementById('tab-btn-text');
-  const tabContentFile = document.getElementById('tab-content-file');
-  const tabContentText = document.getElementById('tab-content-text');
+  // Định nghĩa các DOM Elements của nhập tay
   const manualListTextarea = document.getElementById('manual-list-textarea');
   const btnApplyManualList = document.getElementById('btn-apply-manual-list');
-
-  // Chuyển đổi qua lại giữa Tab Nạp file / Nhập thủ công
-  tabBtnFile.addEventListener('click', () => {
-    tabBtnFile.classList.add('active');
-    tabBtnText.classList.remove('active');
-    tabContentFile.classList.add('active');
-    tabContentText.classList.remove('active');
-    uploadStatus.style.display = 'none';
-  });
-
-  tabBtnText.addEventListener('click', () => {
-    tabBtnText.classList.add('active');
-    tabBtnFile.classList.remove('active');
-    tabContentText.classList.add('active');
-    tabContentFile.classList.remove('active');
-    uploadStatus.style.display = 'none';
-  });
 
   // Xử lý nạp danh sách học sinh từ Textarea nhập tay
   btnApplyManualList.addEventListener('click', () => {
@@ -967,7 +728,7 @@ document.addEventListener('DOMContentLoaded', () => {
       results: []
     };
 
-    showUploadStatus(`Đã nạp thành công ${studentsData.length} học sinh từ danh sách nhập tay!`, 'success');
+    showUploadStatus(`Đã nạp thành công ${studentsData.length} học sinh từ danh sách nhập!`, 'success');
     
     progressFill.style.width = '0%';
     progressPercent.textContent = '0%';

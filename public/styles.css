@@ -743,6 +743,120 @@ body {
   .search-student input:focus {
     width: 180px;
   }
+  
+  .table-container {
+    display: none;
+  }
+  
+  .students-cards-container {
+    display: flex;
+  }
+}
+
+/* Mobile cards styling */
+.students-cards-container {
+  display: none; /* Mặc định ẩn trên desktop */
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 210px);
+  overflow-y: auto;
+  padding: 5px;
+}
+
+.student-mobile-card {
+  background: rgba(22, 17, 43, 0.4);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  padding: 15px;
+  transition: all 0.3s ease;
+  animation: fadeIn 0.3s;
+}
+
+.student-mobile-card:hover {
+  border-color: rgba(176, 98, 255, 0.2);
+  box-shadow: var(--glass-glow);
+}
+
+.student-mobile-card.checking {
+  border-color: rgba(255, 234, 0, 0.3);
+  background: rgba(255, 234, 0, 0.02);
+}
+
+.student-mobile-card.failed {
+  border-color: rgba(255, 23, 68, 0.3);
+  background: rgba(255, 23, 68, 0.02);
+}
+
+.student-mobile-card.success {
+  border-color: rgba(0, 230, 118, 0.3);
+  background: rgba(0, 230, 118, 0.02);
+}
+
+.mobile-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.m-student-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.m-stt {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.m-sbd {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.m-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.mobile-scores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 10px;
+}
+
+.mobile-score-item {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 6px;
+  border-radius: 6px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+.m-sub-label {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 2px;
+}
+
+.m-sub-val {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.mobile-error-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 10px;
+}
 }
 
 

@@ -21,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   const searchStudentInput = document.getElementById('search-student-input');
   const studentsTbody = document.getElementById('students-tbody');
+  const studentsCards = document.getElementById('students-cards');
 
   // Drag & drop file elements
   const dropZone = document.getElementById('drop-zone');
@@ -39,11 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Render danh sách học sinh vào bảng
+  // Render danh sách học sinh vào bảng (Desktop) và Card (Mobile)
   function renderStudentsTable(students, resultsMap = {}) {
     studentsTbody.innerHTML = '';
+    studentsCards.innerHTML = '';
+
     if (students.length === 0) {
       studentsTbody.innerHTML = `<tr><td colspan="13" style="text-align: center; color: var(--text-muted); padding: 20px;">Danh sách học sinh trống. Vui lòng kéo thả file Excel/PDF vào để nạp danh sách.</td></tr>`;
+      studentsCards.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 20px; width: 100%;">Danh sách học sinh trống. Vui lòng kéo thả file Excel/PDF vào để nạp danh sách.</div>`;
       return;
     }
 
@@ -63,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
         statusBadge = `<span class="badge badge-failed" title="${checkedResult.error || ''}">Lỗi</span>`;
       }
 
+      // 1. Render Table Row (Desktop)
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${index + 1}</td>
@@ -83,8 +88,46 @@ document.addEventListener('DOMContentLoaded', () => {
       if (status === 'CHECKING') {
         tr.style.background = 'rgba(255, 23, 68, 0.02)';
       }
-
       studentsTbody.appendChild(tr);
+
+      // 2. Render Card (Mobile)
+      const card = document.createElement('div');
+      card.className = `student-mobile-card ${status.toLowerCase()}`;
+
+      let scoresListHtml = '';
+      const scoreKeys = Object.keys(scores);
+      
+      if (status === 'SUCCESS' && scoreKeys.length > 0) {
+        scoresListHtml = `<div class="mobile-scores-grid mt-10">`;
+        scoreKeys.forEach(subject => {
+          scoresListHtml += `
+            <div class="mobile-score-item">
+              <span class="m-sub-label">${subject}</span>
+              <span class="m-sub-val">${scores[subject]}</span>
+            </div>
+          `;
+        });
+        scoresListHtml += `</div>`;
+      } else if (status === 'FAILED') {
+        scoresListHtml = `<div class="mobile-error-text mt-10" style="color: var(--color-error)">❌ Lỗi: ${checkedResult.error || 'Thất bại'}</div>`;
+      } else if (status === 'NOT_FOUND') {
+        scoresListHtml = `<div class="mobile-error-text mt-10" style="color: var(--color-info)">ℹ️ Không tìm thấy SBD hoặc chưa có điểm.</div>`;
+      } else {
+        scoresListHtml = `<div class="mobile-error-text mt-10" style="color: var(--text-muted)">⏳ Đang chờ kiểm tra điểm...</div>`;
+      }
+
+      card.innerHTML = `
+        <div class="mobile-card-header">
+          <div class="m-student-info">
+            <span class="m-stt">#${index + 1}</span>
+            <span class="m-sbd">${student.sbd}</span>
+            <div class="m-name">${student.name}</div>
+          </div>
+          <div class="m-status-badge">${statusBadge}</div>
+        </div>
+        ${scoresListHtml}
+      `;
+      studentsCards.appendChild(card);
     });
   }
 

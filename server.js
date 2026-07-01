@@ -349,40 +349,50 @@ async function parseExcelBuffer(buffer) {
   return students;
 }
 
-// Logic bóc tách SBD và Họ tên từ file PDF
+// Logic bóc tách SBD và Họ tên từ file PDF Giấy báo dự thi
 async function parsePdfBuffer(buffer) {
-  const data = await pdf(buffer);
-  const text = data.text;
+  const uint8Array = new Uint8Array(buffer);
+  const parser = new pdf.PDFParse(uint8Array);
+  const textResult = await parser.getText();
+  const text = textResult.text || '';
   const lines = text.split('\n');
   const students = [];
 
   lines.forEach(line => {
-    // Dò SBD 8 chữ số
-    const sbdMatch = line.match(/\b([0-9]{8})\b/);
-    if (sbdMatch) {
-      const sbd = sbdMatch[1];
-      
-      // Tách bỏ SBD và dọn dẹp các ký tự thừa
-      let remainingText = line.replace(sbd, '');
-      remainingText = remainingText.replace(/^\s*\d+\s+/, ''); // bỏ STT ở đầu dòng nếu có
-      remainingText = remainingText.replace(/\d{2}[/\-]\d{2}[/\-]\d{4}/g, ''); // bỏ ngày sinh
-      
-      // Regex lấy họ tên in hoa Tiếng Việt
-      const nameMatch = remainingText.match(/([A-ZÀ-Ỹ]{3,}(?:\s+[A-ZÀ-Ỹ]{2,})+)/);
-      let name = nameMatch ? nameMatch[1].trim() : '';
+    // 1. Phân tích theo định dạng "Họ tên thí sinh: ... Số báo danh: ..."
+    const match = line.match(/Họ\s+tên\s+thí\s+sinh:\s*(.+?)\s*Số\s+báo\s+danh:\s*([0-9]{8})/i);
+    if (match) {
+      const name = match[1].replace(/\s+/g, ' ').trim().toUpperCase();
+      const sbd = match[2].trim();
+      if (name.length >= 3 && !students.some(s => s.sbd === sbd)) {
+        students.push({ sbd, name });
+      }
+    } else {
+      // 2. Dự phòng: Tìm Số báo danh 8 chữ số và Họ tên viết hoa đứng liền kề
+      const sbdMatch = line.match(/\b([0-9]{8})\b/);
+      if (sbdMatch) {
+        const sbd = sbdMatch[1];
+        let remainingText = line.replace(sbd, '');
+        remainingText = remainingText.replace(/^\s*\d+\s+/, ''); // bỏ STT ở đầu dòng
+        remainingText = remainingText.replace(/\d{2}[/\-]\d{2}[/\-]\d{4}/g, ''); // bỏ ngày sinh
+        
+        const nameMatch = remainingText.match(/([A-ZÀ-Ỹ]{3,}(?:\s+[A-ZÀ-Ỹ]{2,})+)/);
+        let name = nameMatch ? nameMatch[1].trim() : '';
 
-      if (!name) {
-        // Dự phòng: Lấy các từ chữ không chứa số
-        const cleanText = remainingText.replace(/[0-9]/g, '').replace(/\s+/g, ' ').trim();
-        if (cleanText.length >= 3) {
-          name = cleanText;
+        if (!name) {
+          const cleanText = remainingText.replace(/[0-9]/g, '').replace(/\s+/g, ' ').trim();
+          if (cleanText.length >= 3) {
+            name = cleanText;
+          }
+        }
+
+        if (name && name.length >= 3 && !students.some(s => s.sbd === sbd)) {
+          students.push({
+            sbd,
+            name: name.toUpperCase()
+          });
         }
       }
-
-      students.push({
-        sbd,
-        name: name.toUpperCase() || `Học sinh ${sbd}`
-      });
     }
   });
 

@@ -722,24 +722,31 @@ document.addEventListener('DOMContentLoaded', () => {
           for (let pageNum = 1; pageNum <= pdfDoc.numPages; pageNum++) {
             const page = await pdfDoc.getPage(pageNum);
             const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
+            // Nối các khối text của trang, chuẩn hóa khoảng trắng thừa
+            const pageText = textContent.items.map(item => item.str).join(' ').replace(/\s+/g, ' ');
             fullText += pageText + '\n';
           }
           
-          const lines = fullText.split(/\n/);
+          console.log('=== PDF TEXT EXTRACTED (Length: ' + fullText.length + ') ===');
+          console.log(fullText);
+
           const students = [];
           
-          lines.forEach(line => {
-            // Regex bóc tách "Họ tên thí sinh: ... Số báo danh: ..."
-            const match = line.match(/Họ\s+tên\s+thí\s+sinh:\s*(.+?)\s*Số\s+báo\s+danh:\s*([0-9]{8})/i);
-            if (match) {
-              const name = match[1].replace(/\s+/g, ' ').trim().toUpperCase();
-              const sbd = match[2].trim();
-              if (name.length >= 3 && !students.some(s => s.sbd === sbd)) {
-                students.push({ sbd, name });
-              }
-            } else {
-              // Regex dự phòng
+          // 1. Sử dụng matchAll quét toàn bộ văn bản tìm dạng "Họ tên thí sinh: ... Số báo danh: ..."
+          const matches = [...fullText.matchAll(/Họ\s+tên\s+thí\s+sinh:\s*(.+?)\s*Số\s+báo\s+danh:\s*([0-9]{8})/gi)];
+          
+          matches.forEach(match => {
+            const name = match[1].replace(/\s+/g, ' ').trim().toUpperCase();
+            const sbd = match[2].trim();
+            if (name.length >= 3 && !students.some(s => s.sbd === sbd)) {
+              students.push({ sbd, name });
+            }
+          });
+
+          // 2. Dự phòng nếu regex chính không khớp (ví dụ: bị đổi nhãn)
+          if (students.length === 0) {
+            const lines = fullText.split(/\n/);
+            lines.forEach(line => {
               const sbdMatch = line.match(/\b([0-9]{8})\b/);
               if (sbdMatch) {
                 const sbd = sbdMatch[1];
@@ -747,20 +754,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 remainingText = remainingText.replace(/^\s*\d+\s+/, '');
                 remainingText = remainingText.replace(/\d{2}[/\-]\d{2}[/\-]\d{4}/g, '');
                 
-                const nameMatch = remainingText.match(/([A-ZÀ-Ỹ]{3,}(?:\s+[A-ZÀ-Ỹ]{2,})+)/);
-                let name = nameMatch ? nameMatch[1].trim() : '';
-                
-                if (!name) {
-                  const cleanText = remainingText.replace(/[0-9]/g, '').replace(/\s+/g, ' ').trim();
-                  if (cleanText.length >= 3) name = cleanText;
-                }
-                
-                if (name && name.length >= 3 && !students.some(s => s.sbd === sbd)) {
-                  students.push({ sbd, name: name.toUpperCase() });
+                // Giữ lại chữ cái và khoảng trắng tiếng Việt
+                const cleanName = remainingText.replace(/[^a-zA-ZÀ-ỹ\s]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+                if (cleanName.length >= 3 && !students.some(s => s.sbd === sbd)) {
+                  students.push({ sbd, name: cleanName });
                 }
               }
-            }
-          });
+            });
+          }
           
           resolve(students);
         } catch (err) {

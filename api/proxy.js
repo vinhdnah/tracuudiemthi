@@ -1,18 +1,15 @@
-const express = require('express');
-const path = require('path');
 const axios = require('axios');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Local Dev Proxy API (giống hệt api/proxy.js trên Vercel)
-app.post('/api/proxy', async (req, res) => {
+module.exports = async (req, res) => {
+  // CORS Headers cho phép truy cập từ mọi origin
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
+
+  // Xử lý preflight request OPTIONS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
 
   const { targetUrl, method = 'GET', headers = {}, body = null, responseType = 'text' } = req.body;
 
@@ -53,6 +50,7 @@ app.post('/api/proxy', async (req, res) => {
 
     const response = await axios(config);
 
+    // Chuyển tiếp cookie set-cookie từ response
     const setCookie = response.headers['set-cookie'];
     if (setCookie) {
       res.setHeader('set-cookie', setCookie);
@@ -67,7 +65,7 @@ app.post('/api/proxy', async (req, res) => {
     return res.status(response.status).send(response.data);
 
   } catch (error) {
-    console.error('Lỗi Proxy Local:', error.message);
+    console.error('Lỗi Proxy:', error.message);
     const statusCode = error.response ? error.response.status : 500;
     const errorData = error.response ? error.response.data : null;
     
@@ -77,8 +75,4 @@ app.post('/api/proxy', async (req, res) => {
       details: typeof errorData === 'string' ? errorData.substring(0, 200) : errorData
     });
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Local Dev Server đang chạy tại http://localhost:${PORT}`);
-});
+};

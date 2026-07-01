@@ -10,6 +10,9 @@ const pdf = require('pdf-parse');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Cấu hình cứng API Key giải captcha
+const AUTOCAPTCHA_KEY = '45b95073607c4288a355b47af450a374';
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -452,15 +455,12 @@ app.post('/api/start-check', (req, res) => {
   }
 
   const config = getConfig();
-  if (!config.autocaptcha_key) {
-    return res.status(400).json({ success: false, message: 'Vui lòng cấu hình API Key Autocaptcha trước.' });
-  }
   if (!config.students || config.students.length === 0) {
     return res.status(400).json({ success: false, message: 'Danh sách học sinh trống. Vui lòng upload file danh sách trước.' });
   }
 
-  // Khởi động chạy background
-  runBatchCheck(config.students, config.autocaptcha_key);
+  // Khởi động chạy background dùng API Key cố định
+  runBatchCheck(config.students, AUTOCAPTCHA_KEY);
   res.json({ success: true, message: 'Đã khởi chạy tiến trình check điểm.' });
 });
 
@@ -502,13 +502,8 @@ app.post('/api/check-single', async (req, res) => {
     return res.status(400).json({ success: false, message: 'Thiếu số báo danh.' });
   }
 
-  const config = getConfig();
-  if (!config.autocaptcha_key) {
-    return res.status(400).json({ success: false, message: 'Vui lòng cấu hình API Key Autocaptcha.' });
-  }
-
   try {
-    const result = await fetchScoreForStudent(sbd, config.autocaptcha_key, 10);
+    const result = await fetchScoreForStudent(sbd, AUTOCAPTCHA_KEY, 10);
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

@@ -4,9 +4,6 @@ let studentsData = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   // Lấy các DOM elements
-  const captchaKeyInput = document.getElementById('captcha-key');
-  const btnToggleKey = document.getElementById('btn-toggle-key');
-  const btnSaveConfig = document.getElementById('btn-save-config');
   const btnStart = document.getElementById('btn-start');
   const btnStop = document.getElementById('btn-stop');
   const btnReset = document.getElementById('btn-reset');
@@ -30,21 +27,11 @@ document.addEventListener('DOMContentLoaded', () => {
   const fileInput = document.getElementById('file-input');
   const uploadStatus = document.getElementById('upload-status');
 
-  // 1. Toggle hiển thị API Key
-  btnToggleKey.addEventListener('click', () => {
-    const type = captchaKeyInput.getAttribute('type') === 'password' ? 'text' : 'password';
-    captchaKeyInput.setAttribute('type', type);
-    btnToggleKey.querySelector('span').textContent = type === 'password' ? 'visibility' : 'visibility_off';
-  });
-
-  // 2. Load cấu hình ban đầu
+  // Load cấu hình ban đầu (chỉ lấy danh sách học sinh)
   async function loadConfig() {
     try {
       const response = await fetch('/api/config');
       const data = await response.json();
-      if (data.autocaptcha_key) {
-        captchaKeyInput.value = data.autocaptcha_key;
-      }
       studentsData = data.students || [];
       renderStudentsTable(studentsData);
     } catch (e) {
@@ -52,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 3. Render danh sách học sinh vào bảng
+  // Render danh sách học sinh vào bảng
   function renderStudentsTable(students, resultsMap = {}) {
     studentsTbody.innerHTML = '';
     if (students.length === 0) {
@@ -94,8 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
 
       if (status === 'CHECKING') {
-        tr.style.background = 'rgba(255, 234, 0, 0.05)';
-      } else if (status === 'FAILED') {
         tr.style.background = 'rgba(255, 23, 68, 0.02)';
       }
 
@@ -103,47 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 4. Lưu cấu hình API Key
-  btnSaveConfig.addEventListener('click', async () => {
-    const key = captchaKeyInput.value.trim();
-    try {
-      const response = await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autocaptcha_key: key })
-      });
-      const data = await response.json();
-      if (data.success) {
-        alert('Đã lưu cấu hình API Key thành công!');
-      } else {
-        alert('Lỗi: ' + data.message);
-      }
-    } catch (e) {
-      alert('Không thể kết nối đến server.');
-    }
-  });
-
-  // 5. Bắt đầu check hàng loạt
+  // Bắt đầu check hàng loạt
   btnStart.addEventListener('click', async () => {
-    const key = captchaKeyInput.value.trim();
-    if (!key) {
-      alert('Vui lòng nhập API Key Autocaptcha trước!');
-      return;
-    }
-    
     if (studentsData.length === 0) {
       alert('Danh sách học sinh trống. Vui lòng upload file Excel hoặc PDF trước!');
       return;
     }
 
     try {
-      // Lưu key lên server
-      await fetch('/api/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ autocaptcha_key: key })
-      });
-
       const response = await fetch('/api/start-check', { method: 'POST' });
       const data = await response.json();
       
@@ -164,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 6. Dừng check
+  // Dừng check
   btnStop.addEventListener('click', async () => {
     try {
       const response = await fetch('/api/stop-check', { method: 'POST' });
@@ -178,7 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 7. Reset trạng thái
+  // Reset trạng thái
   btnReset.addEventListener('click', async () => {
     if (!confirm('Bạn có chắc chắn muốn reset toàn bộ trạng thái check điểm không?')) return;
     try {
@@ -198,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 8. Vòng lặp Polling trạng thái
+  // Vòng lặp Polling trạng thái
   function startPolling() {
     if (pollingInterval) clearInterval(pollingInterval);
     pollStatus();
@@ -250,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // 9. Bộ lọc tìm kiếm học sinh
+  // Bộ lọc tìm kiếm học sinh
   searchStudentInput.addEventListener('input', () => {
     fetch('/api/status')
       .then(res => res.json())
@@ -268,17 +220,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
   });
 
-  // 10. Tra cứu đơn lẻ nhanh
+  // Tra cứu đơn lẻ nhanh
   btnCheckSingle.addEventListener('click', async () => {
     const sbd = singleSbdInput.value.trim();
     if (!sbd) {
       alert('Vui lòng nhập Số báo danh.');
-      return;
-    }
-
-    const key = captchaKeyInput.value.trim();
-    if (!key) {
-      alert('Vui lòng điền API Key Autocaptcha trước khi tra cứu.');
       return;
     }
 
@@ -357,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 11. Xử lý Upload file (Excel, PDF)
+  // Xử lý Upload file (Excel, PDF)
   dropZone.addEventListener('click', () => {
     fileInput.click();
   });
@@ -417,7 +363,6 @@ document.addEventListener('DOMContentLoaded', () => {
         studentsData = data.students || [];
         renderStudentsTable(studentsData);
         
-        // Reset trạng thái tiến trình check cũ trên UI
         progressFill.style.width = '0%';
         progressPercent.textContent = '0%';
         progressCount.textContent = `0 / ${studentsData.length} học sinh`;

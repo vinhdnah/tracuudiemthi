@@ -891,6 +891,94 @@ document.addEventListener('DOMContentLoaded', () => {
     renderStudentsTable(filteredStudents, resultsMap);
   });
 
+  // Định nghĩa các DOM Elements của tab nhập tay
+  const tabBtnFile = document.getElementById('tab-btn-file');
+  const tabBtnText = document.getElementById('tab-btn-text');
+  const tabContentFile = document.getElementById('tab-content-file');
+  const tabContentText = document.getElementById('tab-content-text');
+  const manualListTextarea = document.getElementById('manual-list-textarea');
+  const btnApplyManualList = document.getElementById('btn-apply-manual-list');
+
+  // Chuyển đổi qua lại giữa Tab Nạp file / Nhập thủ công
+  tabBtnFile.addEventListener('click', () => {
+    tabBtnFile.classList.add('active');
+    tabBtnText.classList.remove('active');
+    tabContentFile.classList.add('active');
+    tabContentText.classList.remove('active');
+    uploadStatus.style.display = 'none';
+  });
+
+  tabBtnText.addEventListener('click', () => {
+    tabBtnText.classList.add('active');
+    tabBtnFile.classList.remove('active');
+    tabContentText.classList.add('active');
+    tabContentFile.classList.remove('active');
+    uploadStatus.style.display = 'none';
+  });
+
+  // Xử lý nạp danh sách học sinh từ Textarea nhập tay
+  btnApplyManualList.addEventListener('click', () => {
+    const rawText = manualListTextarea.value;
+    if (!rawText.trim()) {
+      showUploadStatus('Vui lòng nhập danh sách học sinh.', 'error');
+      return;
+    }
+
+    const lines = rawText.split('\n');
+    const parsedStudents = [];
+
+    lines.forEach(line => {
+      if (!line.trim()) return;
+
+      // Tìm SBD 8 chữ số
+      const sbdMatch = line.match(/\b([0-9]{8})\b/);
+      if (sbdMatch) {
+        const sbd = sbdMatch[1];
+        let remainingText = line.replace(sbd, '');
+        // Lọc bỏ các chữ số khác (nếu có) và dọn ký tự đặc biệt, chỉ giữ lại chữ tiếng Việt làm tên
+        const cleanName = remainingText.replace(/[^a-zA-ZÀ-ỹ\s]/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
+        
+        if (!parsedStudents.some(s => s.sbd === sbd)) {
+          parsedStudents.push({
+            sbd,
+            name: cleanName || `Học sinh ${sbd}`
+          });
+        }
+      }
+    });
+
+    if (parsedStudents.length === 0) {
+      showUploadStatus('Không tìm thấy Số báo danh 8 chữ số hợp lệ nào trong nội dung đã nhập.', 'error');
+      return;
+    }
+
+    // Lưu danh sách học sinh vào LocalStorage
+    studentsData = parsedStudents;
+    localStorage.setItem('students_list', JSON.stringify(studentsData));
+    
+    // Reset tiến trình cũ
+    localStorage.removeItem('check_results');
+    checkProgress = {
+      isChecking: false,
+      total: studentsData.length,
+      current: 0,
+      successCount: 0,
+      failCount: 0,
+      results: []
+    };
+
+    showUploadStatus(`Đã nạp thành công ${studentsData.length} học sinh từ danh sách nhập tay!`, 'success');
+    
+    progressFill.style.width = '0%';
+    progressPercent.textContent = '0%';
+    progressCount.textContent = `0 / ${studentsData.length} học sinh`;
+    statSuccess.textContent = '0';
+    statFailed.textContent = '0';
+    btnDownload.classList.add('disabled');
+
+    renderStudentsTable(studentsData);
+  });
+
   // Tải config ban đầu khi mở trang
   loadConfig();
 });
